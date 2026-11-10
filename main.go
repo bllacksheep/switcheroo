@@ -70,26 +70,28 @@ func (sw Switcheroo) Run() {
 }
 
 func ghAuthSwitchProfile(name string) {
-	_, _, err := gh.Exec("auth", "switch", "-u", name)
-	if err != nil {
+	if _, _, err := gh.Exec("auth", "switch", "-u", name); err != nil {
 		slog.Error("main.go", "ghAuthSwitchProfile", err.Error())
 	}
-	_, _, err = gh.Exec("auth", "setup-git")
+	if _, _, err := gh.Exec("auth", "setup-git"); err != nil {
+		slog.Error("main.go", "ghAuthSwitchProfile", err.Error())
+	}
 }
 
 func ghAuthStatusReadProfiles() []Host {
 	var auth Auth
 
-	stdout, _, err := gh.Exec("auth", "status", "--json", "hosts")
-	if err != nil {
+	if stdout, _, err := gh.Exec("auth", "status", "--json", "hosts"); err == nil {
+		err = json.Unmarshal(stdout.Bytes(), &auth)
+		if err != nil {
+			slog.Error("main.go", "ghAuthStatusReadProfiles", err.Error())
+			os.Exit(1)
+		}
+	} else {
 		slog.Error("main.go", "ghAuthStatusReadProfiles", err.Error())
 	}
-	err = json.Unmarshal(stdout.Bytes(), &auth)
-	if err != nil {
-		slog.Error("main.go", "ghAuthStatusReadProfiles", err.Error())
-	}
-
 	return auth.Hosts.Github
+
 }
 
 func (sw *Switcheroo) ghAuthSwitch(name string) {
@@ -121,8 +123,8 @@ func (sw *Switcheroo) ghAuthStatus() {
 			sw.Current = &profile
 		}
 	}
-
 }
+
 func (sw Switcheroo) ListCurrentProfile() {
 	fmt.Println(sw.Current.Name)
 }
