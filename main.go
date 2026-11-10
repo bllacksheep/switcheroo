@@ -1,31 +1,36 @@
 package main
 
 import (
-	_ "fmt"
+	"encoding/json"
+	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
-	"strconv"
+	_ "strconv"
 	"strings"
+
+	"github.com/cli/go-gh/v2"
+	_ "github.com/cli/go-gh/v2/pkg/api"
 )
 
-type Swicheroo struct {
+type Switcheroo struct {
 	APPDIR   string
-	Profiles []os.DirEntry
+	Profiles []Profile
 
-	Current string
+	Current *Profile
 }
 
-func (sw Swicheroo) Run() {
-	sw.init()
+func (sw Switcheroo) Run() {
+	//sw.init()
+
 	slog.Info("main.go", "Run", "init complete")
 
-	args := os.Args[1:]
+	if len(os.Args) > 1 {
+		if os.Args[1] == "list" {
+			sw.ListProfiles()
+		}
 
-	if args[1] == "list" {
-		sw.listProfiles()
 	}
-
 }
 
 /*
@@ -39,10 +44,69 @@ sw delete x
 sw info x
 */
 
-func (sw Swicheroo) listProfiles() {
-	slog.Info("main.go", "listProfiles", sw.Current)
+type Auth struct {
+	Hosts struct {
+		Host []struct {
+			State       string `json:"state"`
+			Active      bool   `json:"active"`
+			Host        string `json:"host"`
+			Login       string `json:"login"`
+			TokenSource string `json:"tokenSource"`
+			Scopes      string `json:"scope"`
+			GitProtocol string `json:"gitProtocol"`
+		} `json:"github.com"`
+	} `json:"hosts"`
 }
 
+type Profile struct {
+	Name   string
+	Config string
+	Active bool
+}
+
+func (sw *Switcheroo) readProfiles() {
+	var auth Auth
+	stdout, _, err := gh.Exec("auth", "status", "--json", "hosts")
+	if err != nil {
+		slog.Error("main.go", "listProfiles", err.Error())
+	}
+	err = json.Unmarshal(stdout.Bytes(), &auth)
+	if err != nil {
+		slog.Error("main.go", "listProfiles", err.Error())
+
+	}
+
+	for _, host := range auth.Hosts.Host {
+		var profile Profile
+
+		profile.Active = host.Active
+		profile.Name = host.Login
+
+		sw.Profiles = append(sw.Profiles, profile)
+		if profile.Active {
+			sw.Current = &profile
+		}
+	}
+
+}
+func (sw Switcheroo) ListCurrentProfile() {
+	sw.readProfiles()
+	fmt.Println(sw.Current)
+}
+
+func (sw Switcheroo) ListProfiles() {
+	sw.readProfiles()
+
+	for _, profile := range sw.Profiles {
+		var current string
+		if profile.Active {
+			current = "*"
+		}
+		fmt.Println(profile.Name + current)
+	}
+}
+
+/*
 func (sw *Swicheroo) getCurrentProifle() {
 	numSymLinks := 0
 	for _, profile := range sw.Profiles {
@@ -65,7 +129,9 @@ func (sw *Swicheroo) getCurrentProifle() {
 	}
 	slog.Info("main.go", "getCurrent", "current profile: "+sw.Current)
 }
+*/
 
+/*
 func (sw *Swicheroo) init() {
 	var err error
 	slog.Info("main.go", "init", "scan app dir: "+sw.APPDIR)
@@ -83,6 +149,7 @@ func (sw *Swicheroo) init() {
 
 	sw.getCurrentProifle()
 }
+*/
 
 func main() {
 	slog.Info("main.go", "main", "start switcheroo")
@@ -99,7 +166,7 @@ func main() {
 		appdir = filepath.Join(home, appdir[2:])
 	}
 
-	Swicheroo{
+	Switcheroo{
 		APPDIR: appdir,
 	}.Run()
 }
