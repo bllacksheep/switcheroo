@@ -65,7 +65,6 @@ func (sw Switcheroo) Run() {
 		if os.Args[1] == "use" {
 			sw.ghAuthSwitch(os.Args[2])
 		}
-
 	}
 }
 
@@ -91,7 +90,6 @@ func ghAuthStatusReadProfiles() []Host {
 		slog.Error("main.go", "ghAuthStatusReadProfiles", err.Error())
 	}
 	return auth.Hosts.Github
-
 }
 
 func (sw *Switcheroo) ghAuthSwitch(name string) {
@@ -101,7 +99,6 @@ func (sw *Switcheroo) ghAuthSwitch(name string) {
 		sw.Current = profile
 		return
 	}
-
 	slog.Error("main.go", "ghAuthSwitch", name+" is not a valid profile")
 	os.Exit(1)
 }
