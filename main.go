@@ -13,11 +13,40 @@ import (
 	_ "github.com/cli/go-gh/v2/pkg/api"
 )
 
+/*
+sw list		   // show curents of ~/.local/shared/switcheroo
+sw use x       // sets sw.Current
+sw use system  // sets sw.Current to system ~/.gitconfig
+*/
+
+type Profile struct {
+	Name   string
+	Config string
+	Active bool
+}
+
 type Switcheroo struct {
 	APPDIR   string
 	Profiles map[string]*Profile
 
 	Current *Profile
+}
+
+type Host struct {
+	State       string `json:"state"`
+	Active      bool   `json:"active"`
+	Host        string `json:"host"`
+	Login       string `json:"login"`
+	TokenSource string `json:"tokenSource"`
+	Scopes      string `json:"scope"`
+	GitProtocol string `json:"gitProtocol"`
+}
+
+// taken out github biy
+type Auth struct {
+	Hosts struct {
+		Github []Host `json:"github.com"`
+	} `json:"hosts"`
 }
 
 func (sw Switcheroo) Run() {
@@ -40,40 +69,12 @@ func (sw Switcheroo) Run() {
 	}
 }
 
-/*
-sw list		   // show curents of ~/.local/shared/switcheroo
-sw use x       // sets sw.Current
-sw use system  // sets sw.Current to system ~/.gitconfig
-*/
-
-type Host struct {
-	State       string `json:"state"`
-	Active      bool   `json:"active"`
-	Host        string `json:"host"`
-	Login       string `json:"login"`
-	TokenSource string `json:"tokenSource"`
-	Scopes      string `json:"scope"`
-	GitProtocol string `json:"gitProtocol"`
-}
-
-// taken out github biy
-type Auth struct {
-	Hosts struct {
-		Github []Host `json:"github.com"`
-	} `json:"hosts"`
-}
-
-type Profile struct {
-	Name   string
-	Config string
-	Active bool
-}
-
 func ghAuthSwitchProfile(name string) {
 	_, _, err := gh.Exec("auth", "switch", "-u", name)
 	if err != nil {
 		slog.Error("main.go", "ghAuthSwitchProfile", err.Error())
 	}
+	_, _, err = gh.Exec("auth", "setup-git")
 }
 
 func ghAuthStatusReadProfiles() []Host {
