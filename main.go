@@ -15,7 +15,7 @@ import (
 
 type Switcheroo struct {
 	APPDIR   string
-	Profiles []Profile
+	Profiles map[string]*Profile
 
 	Current *Profile
 }
@@ -23,11 +23,18 @@ type Switcheroo struct {
 func (sw Switcheroo) Run() {
 	//sw.init()
 
+	sw.ghAuthStatus()
 	slog.Info("main.go", "Run", "init complete")
 
 	if len(os.Args) > 1 {
 		if os.Args[1] == "list" {
 			sw.ListProfiles()
+		}
+		if os.Args[1] == "current" {
+			sw.ListCurrentProfile()
+		}
+		if os.Args[1] == "use" {
+			sw.ghAuthSwitch(os.Args[2])
 		}
 
 	}
@@ -37,24 +44,22 @@ func (sw Switcheroo) Run() {
 sw list		   // show curents of ~/.local/shared/switcheroo
 sw use x       // sets sw.Current
 sw use system  // sets sw.Current to system ~/.gitconfig
-
-sw create x
-sw reanme x y
-sw delete x
-sw info x
 */
 
+type Host struct {
+	State       string `json:"state"`
+	Active      bool   `json:"active"`
+	Host        string `json:"host"`
+	Login       string `json:"login"`
+	TokenSource string `json:"tokenSource"`
+	Scopes      string `json:"scope"`
+	GitProtocol string `json:"gitProtocol"`
+}
+
+// taken out github biy
 type Auth struct {
 	Hosts struct {
-		Host []struct {
-			State       string `json:"state"`
-			Active      bool   `json:"active"`
-			Host        string `json:"host"`
-			Login       string `json:"login"`
-			TokenSource string `json:"tokenSource"`
-			Scopes      string `json:"scope"`
-			GitProtocol string `json:"gitProtocol"`
-		} `json:"github.com"`
+		Github []Host `json:"github.com"`
 	} `json:"hosts"`
 }
 
@@ -64,45 +69,66 @@ type Profile struct {
 	Active bool
 }
 
-func (sw *Switcheroo) readProfiles() {
+func ghAuthSwitchProfile(name string) {
+	_, _, err := gh.Exec("auth", "switch", "-u", name)
+	if err != nil {
+		slog.Error("main.go", "ghAuthSwitchProfile", err.Error())
+	}
+}
+
+func ghAuthStatusReadProfiles() []Host {
 	var auth Auth
+
 	stdout, _, err := gh.Exec("auth", "status", "--json", "hosts")
 	if err != nil {
-		slog.Error("main.go", "listProfiles", err.Error())
+		slog.Error("main.go", "ghAuthStatusReadProfiles", err.Error())
 	}
 	err = json.Unmarshal(stdout.Bytes(), &auth)
 	if err != nil {
-		slog.Error("main.go", "listProfiles", err.Error())
-
+		slog.Error("main.go", "ghAuthStatusReadProfiles", err.Error())
 	}
 
-	for _, host := range auth.Hosts.Host {
+	return auth.Hosts.Github
+}
+
+func (sw *Switcheroo) ghAuthSwitch(name string) {
+	if profile, ok := sw.Profiles[name]; ok {
+		ghAuthSwitchProfile(name)
+		slog.Info("main.go", "ghAuthSwitch", "switch to "+profile.Name)
+		sw.Current = profile
+		return
+	}
+
+	slog.Error("main.go", "ghAuthSwitch", name+" is not a valid profile")
+	os.Exit(1)
+}
+
+func (sw *Switcheroo) ghAuthStatus() {
+	profiles := ghAuthStatusReadProfiles()
+	sw.Profiles = make(map[string]*Profile, len(profiles))
+
+	for _, authProfile := range ghAuthStatusReadProfiles() {
 		var profile Profile
 
-		profile.Active = host.Active
-		profile.Name = host.Login
+		profile.Active = authProfile.Active
+		profile.Name = authProfile.Login
 
-		sw.Profiles = append(sw.Profiles, profile)
+		sw.Profiles[profile.Name] = &profile
+
 		if profile.Active {
+			profile.Name += "*"
 			sw.Current = &profile
 		}
 	}
 
 }
 func (sw Switcheroo) ListCurrentProfile() {
-	sw.readProfiles()
-	fmt.Println(sw.Current)
+	fmt.Println(sw.Current.Name)
 }
 
 func (sw Switcheroo) ListProfiles() {
-	sw.readProfiles()
-
 	for _, profile := range sw.Profiles {
-		var current string
-		if profile.Active {
-			current = "*"
-		}
-		fmt.Println(profile.Name + current)
+		fmt.Println(profile.Name)
 	}
 }
 
