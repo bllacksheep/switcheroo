@@ -1,2 +1,2 @@
-switcheroo: main.go; go build -o switcheroo main.go
+sw: main.go; go build -o sw main.go
 

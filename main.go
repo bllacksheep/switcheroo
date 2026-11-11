@@ -15,9 +15,17 @@ import (
 )
 
 /*
-sw list		   // show curents of ~/.local/shared/switcheroo
-sw use x       // sets sw.Current
-sw use system  // sets sw.Current to system ~/.gitconfig
+switcheroo list		   // show curents of ~/.local/shared/switcheroo
+switcheroo use x       // sets sw.Current
+switcheroo use system  // sets sw.Current to system ~/.gitconfig
+
+// proxy 'use' into the parent shell
+sw () {
+	if [ "$1" = "use" ]; then
+       eval "$(switcheroo $@)" &> /dev/null
+	fi	
+	switcheroo $@
+}
 */
 
 type Profile struct {
@@ -57,6 +65,7 @@ func (sw Switcheroo) Run() {
 	sw.ghAuthStatus()
 
 	sw.Verbose = flag.Bool("v", false, "verbose")
+
 	flag.Parse()
 
 	slog.Debug("main.go", "Run", "init complete")
@@ -131,8 +140,6 @@ func (sw *Switcheroo) ghAuthStatus() {
 
 		if profile.Active {
 			profile.Name += "*"
-			sw.Current = profile
-			sw.setCurrentGitConfig()
 		}
 	}
 }
