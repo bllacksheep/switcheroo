@@ -50,6 +50,8 @@ type Auth struct {
 }
 
 func (sw Switcheroo) Run() {
+	createGitConfigDir(sw.APPDIR)
+
 	sw.ghAuthStatus()
 	slog.Info("main.go", "Run", "init complete")
 
@@ -146,25 +148,15 @@ func (sw *Switcheroo) setCurrentGitConfig() {
 	slog.Info("main.go", "setCurrentGitConfig", "current profile: "+sw.Current.Config)
 }
 
-/*
-func (sw *Swicheroo) init() {
+func createGitConfigDir(configDir string) {
 	var err error
-	slog.Info("main.go", "init", "scan app dir: "+sw.APPDIR)
-	sw.Profiles, err = os.ReadDir(sw.APPDIR)
-
+	err = os.Mkdir(configDir, 0755)
 	if err != nil {
-		slog.Warn("main.go", "init", err.Error())
-		err = os.Mkdir(sw.APPDIR, 0755)
-		if err != nil {
-			slog.Error("main.go", "init", "app dir failed to create: "+err.Error())
-			os.Exit(1)
-		}
-		slog.Info("main.go", "init", "app dir created: "+sw.APPDIR)
+		slog.Warn("main.go", "init", "app dir failed to create: "+err.Error())
+		return
 	}
-
-	sw.getCurrentProifle()
+	slog.Info("main.go", "init", "app dir created: "+configDir)
 }
-*/
 
 func main() {
 	slog.Info("main.go", "main", "start switcheroo")
