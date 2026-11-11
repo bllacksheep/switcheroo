@@ -2,6 +2,9 @@
 for now
 export GIT_CONFIG_GLOBAL=~/.local/share/switcheroo/bllacksheep
 
+use system can unset GIT_CONFIG_GLOBAL
+- have too create files at _GLOBAL for whatever profiles it finds
+
 // get names via logged in profiles
 // tie configs to logged in profiles
 // 

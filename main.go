@@ -2,11 +2,11 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
 	"path/filepath"
-	_ "strconv"
 	"strings"
 
 	"github.com/cli/go-gh/v2"
@@ -116,9 +116,12 @@ func (sw *Switcheroo) ghAuthStatus() {
 		profile := &Profile{
 			Active: authProfile.Active,
 			Name:   authProfile.Login,
+			Config: sw.APPDIR + filepath.Join("/", authProfile.Login),
 		}
 
 		sw.Profiles[profile.Name] = profile
+
+		writeGitConfigFile(profile.Config)
 
 		if profile.Active {
 			profile.Name += "*"
@@ -126,6 +129,19 @@ func (sw *Switcheroo) ghAuthStatus() {
 			sw.setCurrentGitConfig()
 		}
 	}
+}
+
+func writeGitConfigFile(path string) {
+	cf, err := os.OpenFile(path, os.O_RDONLY|os.O_CREATE|os.O_EXCL, 0755)
+	if errors.Is(err, os.ErrExist) {
+		slog.Info("main.go", "writeGitConfigFile", "skipping "+err.Error())
+		return
+	}
+	if err != nil {
+		slog.Error("main.go", "writeGitConfigFile", err.Error())
+		return
+	}
+	defer cf.Close()
 }
 
 func (sw Switcheroo) ListCurrentProfile() {
@@ -139,23 +155,22 @@ func (sw Switcheroo) ListProfiles() {
 }
 
 func (sw *Switcheroo) setCurrentGitConfig() {
-	sw.Current.Config = sw.APPDIR + filepath.Join("/", sw.Current.Name[:len(sw.Current.Name)-1])
-	err := os.Setenv("GIT_CONFIG_GLOBAL", sw.Current.Config)
-	if err != nil {
-		slog.Error("main.go", "setCurrentGitConfig", err.Error())
-		os.Exit(1)
-	}
+	fmt.Printf("export GIT_CONFIG_GLOBAL=%s\n", sw.Current.Config)
 	slog.Info("main.go", "setCurrentGitConfig", "current profile: "+sw.Current.Config)
 }
 
 func createGitConfigDir(configDir string) {
 	var err error
 	err = os.Mkdir(configDir, 0755)
-	if err != nil {
-		slog.Warn("main.go", "init", "app dir failed to create: "+err.Error())
+	if errors.Is(err, os.ErrExist) {
+		slog.Info("main.go", "createGitConfigDir", "skipping: "+err.Error())
 		return
 	}
-	slog.Info("main.go", "init", "app dir created: "+configDir)
+	if err != nil {
+		slog.Error("main.go", "createGitConfigDir", "app dir failed to create: "+err.Error())
+		return
+	}
+	slog.Info("main.go", "createGitConfigDir", "app dir created: "+configDir)
 }
 
 // APPDIR will be set via var or config file
