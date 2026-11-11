@@ -1,0 +1,7 @@
+switcheroo:
+  aliases:
+    - name: work
+      profile: jasonleitch
+    - name: personal
+      profile: bllacksheep
+      default: true

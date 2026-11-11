@@ -12,6 +12,7 @@ import (
 
 	"github.com/cli/go-gh/v2"
 	_ "github.com/cli/go-gh/v2/pkg/api"
+	"gopkg.in/yaml.v3"
 )
 
 /*
@@ -23,20 +24,22 @@ switcheroo use system  // sets sw.Current to system ~/.gitconfig
 sw () {
 	if [ "$1" = "use" ]; then
        eval "$(switcheroo $@)" &> /dev/null
-	fi	
+	fi
 	switcheroo $@
 }
 */
 
 type Profile struct {
-	Name   string
-	Config string
-	Active bool
+	Name    string
+	Config  string
+	Active  bool
+	Default bool
 }
 
 type Switcheroo struct {
 	APPDIR   string
 	Profiles map[string]*Profile
+	Aliases  map[string]string
 
 	Verbose *bool
 	Current *Profile
@@ -79,6 +82,10 @@ func (sw Switcheroo) Run() {
 		}
 		if os.Args[1] == "use" {
 			if len(os.Args[2:]) > 0 {
+				if profile, ok := sw.Aliases[os.Args[2]]; ok {
+					sw.ghAuthSwitch(profile)
+					return
+				}
 				sw.ghAuthSwitch(os.Args[2])
 			} else {
 				slog.Error("main.go", "Run", "'use' requires an arg")
@@ -189,8 +196,32 @@ func createGitConfigDir(configDir string) {
 // APPDIR will be set via var or config file
 const gitConfigs = "~/.local/share/switcheroo"
 
+type Alias struct {
+	Name    string `yaml:"name"`
+	Profile string `yaml:"profile"`
+	Deafult bool   `yaml:"default"`
+}
+
+type Config struct {
+	Switcheroo struct {
+		Aliasses []Alias `yaml:"aliases"`
+	} `yaml:"switcheroo"`
+}
+
 func main() {
+	config := Config{}
 	slog.Debug("main.go", "main", "start switcheroo")
+
+	f, err := os.ReadFile("config.yaml")
+	if err != nil {
+		slog.Info("main.go", "main", err.Error())
+	}
+
+	if err := yaml.Unmarshal(f, &config); err != nil {
+		slog.Error("main.go", "main", err.Error())
+		os.Exit(1)
+	}
+
 	appDir := gitConfigs
 
 	if strings.HasPrefix(gitConfigs, "~/") {
@@ -202,7 +233,14 @@ func main() {
 		appDir = filepath.Join(home, gitConfigs[2:])
 	}
 
+	aliases := make(map[string]string, len(config.Switcheroo.Aliasses))
+
+	for _, alias := range config.Switcheroo.Aliasses {
+		aliases[alias.Name] = alias.Profile
+	}
+
 	Switcheroo{
-		APPDIR: appDir,
+		APPDIR:  appDir,
+		Aliases: aliases,
 	}.Run()
 }
