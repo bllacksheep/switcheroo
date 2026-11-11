@@ -50,8 +50,6 @@ type Auth struct {
 }
 
 func (sw Switcheroo) Run() {
-	//sw.init()
-
 	sw.ghAuthStatus()
 	slog.Info("main.go", "Run", "init complete")
 
@@ -63,17 +61,12 @@ func (sw Switcheroo) Run() {
 			sw.ListCurrentProfile()
 		}
 		if os.Args[1] == "use" {
-			sw.ghAuthSwitch(os.Args[2])
+			if len(os.Args[2:]) > 0 {
+				sw.ghAuthSwitch(os.Args[2])
+			} else {
+				slog.Error("main.go", "Run", "'use' requires an arg")
+			}
 		}
-	}
-}
-
-func ghAuthSwitchProfile(name string) {
-	if _, _, err := gh.Exec("auth", "switch", "-u", name); err != nil {
-		slog.Error("main.go", "ghAuthSwitchProfile", err.Error())
-	}
-	if _, _, err := gh.Exec("auth", "setup-git"); err != nil {
-		slog.Error("main.go", "ghAuthSwitchProfile", err.Error())
 	}
 }
 
@@ -92,11 +85,21 @@ func ghAuthStatusReadProfiles() []Host {
 	return auth.Hosts.Github
 }
 
+func ghAuthSwitchProfile(name string) {
+	if _, _, err := gh.Exec("auth", "switch", "-u", name); err != nil {
+		slog.Error("main.go", "ghAuthSwitchProfile", err.Error())
+	}
+	if _, _, err := gh.Exec("auth", "setup-git"); err != nil {
+		slog.Error("main.go", "ghAuthSwitchProfile", err.Error())
+	}
+}
+
 func (sw *Switcheroo) ghAuthSwitch(name string) {
 	if profile, ok := sw.Profiles[name]; ok {
 		ghAuthSwitchProfile(name)
 		slog.Info("main.go", "ghAuthSwitch", "switch to "+profile.Name)
 		sw.Current = profile
+		sw.setCurrentGitConfig()
 		return
 	}
 	slog.Error("main.go", "ghAuthSwitch", name+" is not a valid profile")
@@ -108,16 +111,17 @@ func (sw *Switcheroo) ghAuthStatus() {
 	sw.Profiles = make(map[string]*Profile, len(profiles))
 
 	for _, authProfile := range ghAuthStatusReadProfiles() {
-		var profile Profile
+		profile := &Profile{
+			Active: authProfile.Active,
+			Name:   authProfile.Login,
+		}
 
-		profile.Active = authProfile.Active
-		profile.Name = authProfile.Login
-
-		sw.Profiles[profile.Name] = &profile
+		sw.Profiles[profile.Name] = profile
 
 		if profile.Active {
 			profile.Name += "*"
-			sw.Current = &profile
+			sw.Current = profile
+			sw.setCurrentGitConfig()
 		}
 	}
 }
@@ -132,30 +136,15 @@ func (sw Switcheroo) ListProfiles() {
 	}
 }
 
-/*
-func (sw *Swicheroo) getCurrentProifle() {
-	numSymLinks := 0
-	for _, profile := range sw.Profiles {
-		target := sw.APPDIR + filepath.Join("/", profile.Name())
-		f, err := os.Lstat(target)
-		if err != nil {
-			slog.Error("main.go", "getCurrent", err.Error())
-		}
-		if f.Mode()&os.ModeSymlink != 0 {
-			numSymLinks++
-			sw.Current, err = os.Readlink(target)
-			if err != nil {
-				slog.Error("main.go", "getCurrent", err.Error())
-			}
-			if numSymLinks > 1 {
-				slog.Error("main.go", "getCurrent", "found "+strconv.Itoa(numSymLinks)+" current profiles should only be 1")
-				os.Exit(1)
-			}
-		}
+func (sw *Switcheroo) setCurrentGitConfig() {
+	sw.Current.Config = sw.APPDIR + filepath.Join("/", sw.Current.Name[:len(sw.Current.Name)-1])
+	err := os.Setenv("GIT_CONFIG_GLOBAL", sw.Current.Config)
+	if err != nil {
+		slog.Error("main.go", "setCurrentGitConfig", err.Error())
+		os.Exit(1)
 	}
-	slog.Info("main.go", "getCurrent", "current profile: "+sw.Current)
+	slog.Info("main.go", "setCurrentGitConfig", "current profile: "+sw.Current.Config)
 }
-*/
 
 /*
 func (sw *Swicheroo) init() {
