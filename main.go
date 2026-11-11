@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"log/slog"
 	"os"
@@ -29,6 +30,7 @@ type Switcheroo struct {
 	APPDIR   string
 	Profiles map[string]*Profile
 
+	Verbose *bool
 	Current *Profile
 }
 
@@ -53,7 +55,11 @@ func (sw Switcheroo) Run() {
 	createGitConfigDir(sw.APPDIR)
 
 	sw.ghAuthStatus()
-	slog.Info("main.go", "Run", "init complete")
+
+	sw.Verbose = flag.Bool("v", false, "verbose")
+	flag.Parse()
+
+	slog.Debug("main.go", "Run", "init complete")
 
 	if len(os.Args) > 1 {
 		if os.Args[1] == "list" {
@@ -99,7 +105,7 @@ func ghAuthSwitchProfile(name string) {
 func (sw *Switcheroo) ghAuthSwitch(name string) {
 	if profile, ok := sw.Profiles[name]; ok {
 		ghAuthSwitchProfile(name)
-		slog.Info("main.go", "ghAuthSwitch", "switch to "+profile.Name)
+		slog.Debug("main.go", "ghAuthSwitch", "switch to "+profile.Name)
 		sw.Current = profile
 		sw.setCurrentGitConfig()
 		return
@@ -134,7 +140,7 @@ func (sw *Switcheroo) ghAuthStatus() {
 func writeGitConfigFile(path string) {
 	cf, err := os.OpenFile(path, os.O_RDONLY|os.O_CREATE|os.O_EXCL, 0755)
 	if errors.Is(err, os.ErrExist) {
-		slog.Info("main.go", "writeGitConfigFile", "skipping "+err.Error())
+		slog.Debug("main.go", "writeGitConfigFile", "skipping "+err.Error())
 		return
 	}
 	if err != nil {
@@ -156,28 +162,28 @@ func (sw Switcheroo) ListProfiles() {
 
 func (sw *Switcheroo) setCurrentGitConfig() {
 	fmt.Printf("export GIT_CONFIG_GLOBAL=%s\n", sw.Current.Config)
-	slog.Info("main.go", "setCurrentGitConfig", "current profile: "+sw.Current.Config)
+	slog.Debug("main.go", "setCurrentGitConfig", "current profile: "+sw.Current.Config)
 }
 
 func createGitConfigDir(configDir string) {
 	var err error
 	err = os.Mkdir(configDir, 0755)
 	if errors.Is(err, os.ErrExist) {
-		slog.Info("main.go", "createGitConfigDir", "skipping: "+err.Error())
+		slog.Debug("main.go", "createGitConfigDir", "skipping: "+err.Error())
 		return
 	}
 	if err != nil {
 		slog.Error("main.go", "createGitConfigDir", "app dir failed to create: "+err.Error())
 		return
 	}
-	slog.Info("main.go", "createGitConfigDir", "app dir created: "+configDir)
+	slog.Debug("main.go", "createGitConfigDir", "app dir created: "+configDir)
 }
 
 // APPDIR will be set via var or config file
 const gitConfigs = "~/.local/share/switcheroo"
 
 func main() {
-	slog.Info("main.go", "main", "start switcheroo")
+	slog.Debug("main.go", "main", "start switcheroo")
 	appDir := gitConfigs
 
 	if strings.HasPrefix(gitConfigs, "~/") {
