@@ -158,22 +158,23 @@ func createGitConfigDir(configDir string) {
 	slog.Info("main.go", "init", "app dir created: "+configDir)
 }
 
+// APPDIR will be set via var or config file
+const gitConfigs = "~/.local/share/switcheroo"
+
 func main() {
 	slog.Info("main.go", "main", "start switcheroo")
+	appDir := gitConfigs
 
-	// APPDIR will be set via var or config file
-	appdir := "~/.local/share/switcheroo"
-
-	if strings.HasPrefix(appdir, "~/") {
+	if strings.HasPrefix(gitConfigs, "~/") {
 		home, err := os.UserHomeDir()
 		if err != nil {
 			slog.Error("main.go", "main", "failed to get homedir")
 			os.Exit(1)
 		}
-		appdir = filepath.Join(home, appdir[2:])
+		appDir = filepath.Join(home, gitConfigs[2:])
 	}
 
 	Switcheroo{
-		APPDIR: appdir,
+		APPDIR: appDir,
 	}.Run()
 }
