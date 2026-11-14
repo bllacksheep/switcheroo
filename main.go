@@ -43,6 +43,8 @@ type Switcheroo struct {
 
 	Verbose *bool
 	Current *Profile
+
+	Config  Config
 }
 
 type Host struct {
@@ -79,6 +81,10 @@ func (sw Switcheroo) Run() {
 		}
 		if os.Args[1] == "current" {
 			sw.ListCurrentProfile()
+			return
+		}
+		if os.Args[1] == "write" {
+			sw.writeGitConfig()
 		}
 		if os.Args[1] == "use" {
 			if len(os.Args[2:]) > 0 {
@@ -147,6 +153,7 @@ func (sw *Switcheroo) ghAuthStatus() {
 
 		if profile.Active {
 			profile.Name += "*"
+			sw.Current = profile
 		}
 	}
 }
@@ -196,15 +203,23 @@ func createGitConfigDir(configDir string) {
 // APPDIR will be set via var or config file
 const gitConfigs = "~/.local/share/switcheroo"
 
-type Alias struct {
-	Name    string `yaml:"name"`
-	Profile string `yaml:"profile"`
-	Deafult bool   `yaml:"default"`
+type Credential struct {
+	Name   string `yaml:"name"`
+	Helper string `yaml:"helper"`
+}
+
+type GitConfig struct {
+	Alias       string       `yaml:"alias"`
+	Account     string       `yaml:"account"`
+	Email       string       `yaml:"email"`
+	SigningKey  string       `yaml:"signingkey"`
+	Credentials []Credential `yaml:"credentials"`
+	Deafult     bool         `yaml:"default"`
 }
 
 type Config struct {
 	Switcheroo struct {
-		Aliasses []Alias `yaml:"aliases"`
+		GitConfigs []GitConfig `yaml:"gitconfigs"`
 	} `yaml:"switcheroo"`
 }
 
@@ -233,10 +248,10 @@ func main() {
 		appDir = filepath.Join(home, gitConfigs[2:])
 	}
 
-	aliases := make(map[string]string, len(config.Switcheroo.Aliasses))
+	aliases := make(map[string]string, len(config.Switcheroo.GitConfigs))
 
-	for _, alias := range config.Switcheroo.Aliasses {
-		aliases[alias.Name] = alias.Profile
+	for _, config := range config.Switcheroo.GitConfigs {
+		aliases[config.Alias] = config.Account
 	}
 
 	Switcheroo{
