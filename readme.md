@@ -3,14 +3,15 @@ managed my git auth backend and git push config in one place. Requires git and g
 put shell wrapper in `~/.zshrc` or bash.
 ```bash
 # check from shell with decalre -f sw
-sw () {
-    # $1 and $2 used incase -v is passed `sw -v {opts}`
-	if [ "$1" = "use" ] || [ "$2" = "use" ]
-	then
-		eval "$(switcheroo $@ 2> /dev/null)"
-		return
-	fi
+function sw () {
+	if [ "$1" = "use" ] || [ "$2" = "use" ]; then
+	   if output=$(switcheroo $@ 2> /dev/null); then
+		   eval $output
+		   echo "switching to $(basename $output)..."
+		   return
+		fi
 	switcheroo $@
+	fi
 }
 ```
 not required but `switcheroo.yaml` can handles setting up account aliases for quick switch and even building git configs on the fly. 
