@@ -44,7 +44,7 @@ type Switcheroo struct {
 	Verbose *bool
 	Current *Profile
 
-	Config  Config
+	Config Config
 }
 
 type Host struct {
@@ -65,14 +65,32 @@ type Auth struct {
 }
 
 func (sw Switcheroo) Run() {
-	createGitConfigDir(sw.APPDIR)
-
-	sw.ghAuthStatus()
-
 	sw.Verbose = flag.Bool("v", false, "verbose")
-
 	flag.Parse()
 
+	logLevel := slog.LevelInfo
+
+	if *sw.Verbose {
+		logLevel = slog.LevelDebug
+	}
+
+	opts := &slog.HandlerOptions{
+		Level: logLevel,
+	}
+
+	handler := slog.NewTextHandler(os.Stderr, opts)
+	slog.SetDefault(slog.New(handler))
+
+	if err := createGitConfigDir(sw.APPDIR); err != nil {
+		slog.Error("failed to create appdir", "error:", err.Error())
+		os.Exit(1)
+	}
+	slog.Debug("main.go", "Run", "created git config dir")
+
+	if err := sw.ghAuthStatus(); err != nil {
+		slog.Error(err.Error())
+	}
+	slog.Debug("main.go", "Run", "got gh status")
 	slog.Debug("main.go", "Run", "init complete")
 
 	if len(os.Args) > 1 {
@@ -84,7 +102,9 @@ func (sw Switcheroo) Run() {
 			return
 		}
 		if os.Args[1] == "write" {
-			sw.writeGitConfig()
+			if err := writeGitConfigFile("yolo"); err != nil {
+				slog.Error("main.go", "error:", err.Error())
+			}
 		}
 		if os.Args[1] == "use" {
 			if len(os.Args[2:]) > 0 {
@@ -100,19 +120,16 @@ func (sw Switcheroo) Run() {
 	}
 }
 
-func ghAuthStatusReadProfiles() []Host {
+func ghAuthStatusReadProfiles() ([]Host, error) {
 	var auth Auth
 
 	if stdout, _, err := gh.Exec("auth", "status", "--json", "hosts"); err == nil {
 		err = json.Unmarshal(stdout.Bytes(), &auth)
 		if err != nil {
-			slog.Error("main.go", "ghAuthStatusReadProfiles", err.Error())
-			os.Exit(1)
+			return nil, fmt.Errorf("failed to get auth status %s", err)
 		}
-	} else {
-		slog.Error("main.go", "ghAuthStatusReadProfiles", err.Error())
 	}
-	return auth.Hosts.Github
+	return auth.Hosts.Github, nil
 }
 
 func ghAuthSwitchProfile(name string) {
@@ -136,11 +153,15 @@ func (sw *Switcheroo) ghAuthSwitch(name string) {
 	os.Exit(1)
 }
 
-func (sw *Switcheroo) ghAuthStatus() {
-	profiles := ghAuthStatusReadProfiles()
+func (sw *Switcheroo) ghAuthStatus() error {
+	profiles, err := ghAuthStatusReadProfiles()
+	if err != nil {
+		return err
+	}
+
 	sw.Profiles = make(map[string]*Profile, len(profiles))
 
-	for _, authProfile := range ghAuthStatusReadProfiles() {
+	for _, authProfile := range profiles {
 		profile := &Profile{
 			Active: authProfile.Active,
 			Name:   authProfile.Login,
@@ -156,48 +177,50 @@ func (sw *Switcheroo) ghAuthStatus() {
 			sw.Current = profile
 		}
 	}
+	return nil
 }
 
-func writeGitConfigFile(path string) {
+// isn't writing anything right now
+func writeGitConfigFile(path string) error {
 	cf, err := os.OpenFile(path, os.O_RDONLY|os.O_CREATE|os.O_EXCL, 0755)
 	if errors.Is(err, os.ErrExist) {
 		slog.Debug("main.go", "writeGitConfigFile", "skipping "+err.Error())
-		return
+		return nil
 	}
 	if err != nil {
-		slog.Error("main.go", "writeGitConfigFile", err.Error())
-		return
+		return err
 	}
 	defer cf.Close()
+	return nil
 }
 
 func (sw Switcheroo) ListCurrentProfile() {
+	slog.Debug("main.go", "ListCurrentProfile", "current: "+sw.Current.Name)
 	fmt.Println(sw.Current.Name)
 }
 
 func (sw Switcheroo) ListProfiles() {
 	for _, profile := range sw.Profiles {
+		slog.Debug("main.go", "ListProfiles", "profile: "+profile.Name)
 		fmt.Println(profile.Name)
 	}
 }
 
 func (sw *Switcheroo) setCurrentGitConfig() {
-	fmt.Printf("export GIT_CONFIG_GLOBAL=%s\n", sw.Current.Config)
 	slog.Debug("main.go", "setCurrentGitConfig", "current profile: "+sw.Current.Config)
+	fmt.Printf("export GIT_CONFIG_GLOBAL=%s\n", sw.Current.Config)
 }
 
-func createGitConfigDir(configDir string) {
+func createGitConfigDir(configDir string) error {
 	var err error
 	err = os.Mkdir(configDir, 0755)
+
 	if errors.Is(err, os.ErrExist) {
 		slog.Debug("main.go", "createGitConfigDir", "skipping: "+err.Error())
-		return
+		return nil
 	}
-	if err != nil {
-		slog.Error("main.go", "createGitConfigDir", "app dir failed to create: "+err.Error())
-		return
-	}
-	slog.Debug("main.go", "createGitConfigDir", "app dir created: "+configDir)
+
+	return err
 }
 
 // APPDIR will be set via var or config file
