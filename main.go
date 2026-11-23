@@ -15,20 +15,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-/*
-switcheroo list		   // show curents of ~/.local/shared/switcheroo
-switcheroo use x       // sets sw.Current
-switcheroo use system  // sets sw.Current to system ~/.gitconfig
-
-// proxy 'use' into the parent shell
-sw () {
-	if [ "$1" = "use" ]; then
-       eval "$(switcheroo $@)" &> /dev/null
-	fi
-	switcheroo $@
-}
-*/
-
 type Profile struct {
 	Name    string
 	Config  string

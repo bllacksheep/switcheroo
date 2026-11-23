@@ -1,17 +1,10 @@
-managed my git auth backend and git push config in one place. Requires git and gh
-```
-sw use work
-sw use personal 
-```
-or by name `sw use bllacksheep` and view currently acitve profiles
-```
-sw list
-sw current
-```
+managed my git auth backend and git push config in one place. Requires git and gh.
 
-shell wrapper
-```
+put shell wrapper in `~/.zshrc` or bash.
+```bash
+# check from shell with decalre -f sw
 sw () {
+    # $1 and $2 used incase -v is passed `sw -v {opts}`
 	if [ "$1" = "use" ] || [ "$2" = "use" ]
 	then
 		eval "$(switcheroo $@ 2> /dev/null)"
@@ -20,5 +13,44 @@ sw () {
 	switcheroo $@
 }
 ```
+config handles setting up aliases for quick switch. For private account details set in shell and the tool will resolve them.
+```yaml
+# config.yaml
+switcheroo:
+  gitconfig:
+    - alias: work
+      account: "${WORK_ACCOUNT}"
+      name: "${WORK_NAME}"
+      email: "${WORK_EMAIL}"
+      signingkey: "${WORK_SIGNINGKEY}"
+      credentials:
+        - name: "https://github.com"
+          helper: "!/opt/homebrew/bin/gh auth git-credential"
+        - name: "https://gits.github.com"
+          helper: "!/opt/homebrew/bin/gh auth git-credential"
+    - name: personal
+      acount: bllacksheep
+      name: bllacksheep
+      email: "${PERSONAL_EMAIL}"
+      credentials:
+        - name: "https://github.com"
+          helper: "!/opt/homebrew/bin/gh auth git-credential"
+        - name: "https://gits.github.com"
+          helper: "!/opt/homebrew/bin/gh auth git-credential"
+      default: true
+```
+now you can do, instead of `sw use bllacksheep`
+```
+sw use work
+sw use personal 
+```
+other options
+```bash
+sw list        // all known profiles *current
+sw current     // *current
+sw use x       // sets sw.Current
+sw use system  // sets sw.Current to system ~/.gitconfig
+```
+
 
 
