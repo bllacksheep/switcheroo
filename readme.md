@@ -14,7 +14,7 @@ sw () {
 }
 ```
 not required but `switcheroo.yaml` can handles setting up account aliases for quick switch and even building git configs on the fly. 
-Git configs are written to `~/.local/share/switcheroo/<name>`. For private account details set env vars in the shell and the tool will resolve them.
+Git configs are written to `~/.local/share/switcheroo/<account>`. For private account details set env vars in the shell and the tool will resolve them, you can call them whatever you want.
 ```yaml
 # ~/.switcheroo.yaml
 switcheroo:
@@ -28,7 +28,7 @@ switcheroo:
           helper: "!/opt/homebrew/bin/gh auth git-credential"
         - name: "https://gits.github.com"
           helper: "!/opt/homebrew/bin/gh auth git-credential"
-    - name: personal
+    - alias: personal
       acount: bllacksheep
       email: "${PERSONAL_EMAIL}"
       credentials:
