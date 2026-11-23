@@ -45,10 +45,10 @@ sw use personal
 ```
 other options
 ```bash
-sw list        // all known profiles *current
-sw current     // *current
-sw use x       // sets sw.Current
-sw use system  // sets sw.Current to system ~/.gitconfig
+sw list            # all known profiles *current
+sw current         # *current
+sw use x or alias  # sets sw.Current
+sw use system      # sets sw.Current to system ~/.gitconfig, essentially disables the tool
 ```
 
 
