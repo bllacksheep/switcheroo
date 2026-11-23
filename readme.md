@@ -39,7 +39,7 @@ switcheroo:
           helper: "!/opt/homebrew/bin/gh auth git-credential"
       default: true
 ```
-now you can do, instead of `sw use bllacksheep`
+now instead of `sw use bllacksheep`, you can do:
 ```
 sw use work
 sw use personal 
