@@ -13,14 +13,13 @@ sw () {
 	switcheroo $@
 }
 ```
-config handles setting up aliases for quick switch. For private account details set in shell and the tool will resolve them.
+not required but config can handles setting up aliases for quick switch and writing gitconfigs for you. Git configs are written to ~/.local/share/switcheroo/<name> For private account details set in shell and the tool will resolve them.
 ```yaml
-# config.yaml
+# ~/.switcheroo.yaml
 switcheroo:
   gitconfig:
     - alias: work
       account: "${WORK_ACCOUNT}"
-      name: "${WORK_NAME}"
       email: "${WORK_EMAIL}"
       signingkey: "${WORK_SIGNINGKEY}"
       credentials:
@@ -30,7 +29,6 @@ switcheroo:
           helper: "!/opt/homebrew/bin/gh auth git-credential"
     - name: personal
       acount: bllacksheep
-      name: bllacksheep
       email: "${PERSONAL_EMAIL}"
       credentials:
         - name: "https://github.com"

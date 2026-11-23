@@ -2,7 +2,6 @@ switcheroo:
   gitconfig:
     - alias: work
       account: "${WORK_ACCOUNT}"
-      name: "${WORK_NAME}"
       email: "${WORK_EMAIL}"
       signingkey: "${WORK_SIGNINGKEY}"
       credentials:
@@ -12,7 +11,6 @@ switcheroo:
           helper: "!/opt/homebrew/bin/gh auth git-credential"
     - name: personal
       acount: bllacksheep
-      name: bllacksheep
       email: "${PERSONAL_EMAIL}"
       credentials:
         - name: "https://github.com"
