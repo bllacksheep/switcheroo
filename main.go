@@ -94,25 +94,25 @@ func (sw Switcheroo) Run() {
 	slog.Debug("main.go", "Run", "init complete")
 
 	if len(os.Args) > 1 {
-		if os.Args[1] == "list" {
+		if flag.Arg(0) == "list" {
 			sw.ListProfiles()
 		}
-		if os.Args[1] == "current" {
+		if flag.Arg(0) == "current" {
 			sw.ListCurrentProfile()
 			return
 		}
-		if os.Args[1] == "write" {
+		if flag.Arg(0) == "write" {
 			if err := writeGitConfigFile("yolo"); err != nil {
 				slog.Error("main.go", "error:", err.Error())
 			}
 		}
-		if os.Args[1] == "use" {
-			if len(os.Args[2:]) > 0 {
-				if profile, ok := sw.Aliases[os.Args[2]]; ok {
+		if flag.Arg(0) == "use" {
+			if flag.Arg(1) != "" {
+				if profile, ok := sw.Aliases[flag.Arg(1)]; ok {
 					sw.ghAuthSwitch(profile)
 					return
 				}
-				sw.ghAuthSwitch(os.Args[2])
+				sw.ghAuthSwitch(flag.Arg(1))
 			} else {
 				slog.Error("main.go", "Run", "'use' requires an arg")
 			}

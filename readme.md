@@ -9,4 +9,16 @@ sw list
 sw current
 ```
 
+shell wrapper
+```
+sw () {
+	if [ "$1" = "use" ] || [ "$2" = "use" ]
+	then
+		eval "$(switcheroo $@ 2> /dev/null)"
+		return
+	fi
+	switcheroo $@
+}
+```
+
 
