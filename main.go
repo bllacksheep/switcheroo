@@ -236,7 +236,7 @@ func main() {
 	config := Config{}
 	slog.Debug("main.go", "main", "start switcheroo")
 
-	f, err := os.ReadFile("switcheroo.yaml")
+	f, err := os.ReadFile("~/.switcheroo.yaml")
 	if err != nil {
 		slog.Info("main.go", "main", err.Error())
 	}
