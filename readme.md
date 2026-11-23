@@ -13,7 +13,8 @@ sw () {
 	switcheroo $@
 }
 ```
-not required but config can handles setting up aliases for quick switch and writing gitconfigs for you. Git configs are written to ~/.local/share/switcheroo/<name> For private account details set in shell and the tool will resolve them.
+not required but `switcheroo.yaml` can handles setting up account aliases for quick switch and even building git configs on the fly. 
+Git configs are written to `~/.local/share/switcheroo/<name>`. For private account details set env vars in the shell and the tool will resolve them.
 ```yaml
 # ~/.switcheroo.yaml
 switcheroo:
