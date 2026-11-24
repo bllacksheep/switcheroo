@@ -8,11 +8,9 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/cli/go-gh/v2"
 	_ "github.com/cli/go-gh/v2/pkg/api"
-	"gopkg.in/yaml.v3"
 )
 
 type Profile struct {
@@ -30,7 +28,7 @@ type Switcheroo struct {
 	Verbose *bool
 	Current *Profile
 
-	Config Config
+	Config *Config
 }
 
 type Host struct {
@@ -209,62 +207,22 @@ func createGitConfigDir(configDir string) error {
 	return err
 }
 
-// APPDIR will be set via var or config file
-const gitConfigs = "~/.local/share/switcheroo"
-
-type Credential struct {
-	Name   string `yaml:"name"`
-	Helper string `yaml:"helper"`
-}
-
-type GitConfig struct {
-	Alias       string       `yaml:"alias"`
-	Account     string       `yaml:"account"`
-	Email       string       `yaml:"email"`
-	SigningKey  string       `yaml:"signingkey"`
-	Credentials []Credential `yaml:"credentials"`
-	Deafult     bool         `yaml:"default"`
-}
-
-type Config struct {
-	Switcheroo struct {
-		GitConfigs []GitConfig `yaml:"gitconfigs"`
-	} `yaml:"switcheroo"`
-}
-
 func main() {
-	config := Config{}
 	slog.Debug("main.go", "main", "start switcheroo")
-
-	f, err := os.ReadFile("~/.switcheroo.yaml")
+	config, err := validateConfig()
 	if err != nil {
-		slog.Info("main.go", "main", err.Error())
-	}
-
-	if err := yaml.Unmarshal(f, &config); err != nil {
 		slog.Error("main.go", "main", err.Error())
 		os.Exit(1)
 	}
 
-	appDir := gitConfigs
-
-	if strings.HasPrefix(gitConfigs, "~/") {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			slog.Error("main.go", "main", "failed to get homedir")
-			os.Exit(1)
-		}
-		appDir = filepath.Join(home, gitConfigs[2:])
-	}
-
 	aliases := make(map[string]string, len(config.Switcheroo.GitConfigs))
 
-	for _, config := range config.Switcheroo.GitConfigs {
-		aliases[config.Alias] = config.Account
+	for _, alias := range config.Switcheroo.Aliases {
+		aliases[alias.Name] = alias.Account
 	}
 
 	Switcheroo{
-		APPDIR:  appDir,
+		APPDIR:  config.Switcheroo.GitConfigs,
 		Aliases: aliases,
 	}.Run()
 }

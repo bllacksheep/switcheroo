@@ -1,7 +1,7 @@
 # treat every name list an alias by default
 switcheroo:
-  configs: "~/.local/share/switcheroo"
-  gitconfig:
+  gitconfigs: "~/.local/share/switcheroo"
+  aliases:
     - name: work
       account: "${WORK_ACCOUNT}"
       email: "${WORK_EMAIL}"
