@@ -19,8 +19,9 @@ Git configs are written to `~/.local/share/switcheroo/<account>`. For private ac
 ```yaml
 # ~/.switcheroo.yaml
 switcheroo:
-  gitconfig:
-    - alias: work
+  gitconfigs: "~/.local/share/switcheroo"
+  aliases:
+    - name: work
       account: "${WORK_ACCOUNT}"
       email: "${WORK_EMAIL}"
       signingkey: "${WORK_SIGNINGKEY}"
@@ -29,7 +30,7 @@ switcheroo:
           helper: "!/opt/homebrew/bin/gh auth git-credential"
         - name: "https://gits.github.com"
           helper: "!/opt/homebrew/bin/gh auth git-credential"
-    - alias: personal
+    - name: personal
       acount: bllacksheep
       email: "${PERSONAL_EMAIL}"
       credentials:
